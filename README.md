@@ -13,15 +13,15 @@ go build ipserv.go
 
 使用ipip的ipdb数据库，提供了几个http的查询接口
 
-* /  text结果，仅有部分字段
-* /json json结果，全部字段
+* /  返回text格式结果，仅有部分字段
+* /json 返回json结果，全部字段
 
 使用方式：
 将任意含有IP的文本，用POST方式发送到上述接口，即可返回对应IP的查询结果。
 
 
 ```
-wxh-rmbp :: ~/› » echo "1.1.1.1 2.2.2.2 123.123.1.1 1.1.1.1 255.255.255.255 8.8.8.26 114.114.114.234----" | curl 127.1:8080/ -d@- -H 'Content-Type: text/plain'                  130 ↵
+wxh-rmbp » echo "1.1.1.1 2.2.2.2 123.123.1.1 1.1.1.1 255.255.255.255 8.8.8.26 114.114.114.234----" | curl 127.1:8080/ -d@- -H 'Content-Type: text/plain'
 #ip country_name region_name city_name owner_domain isp_domain china_admin_code country_code continent_code idc base_station country_code3 anycast
 1.1.1.1 CLOUDFLARE.COM CLOUDFLARE.COM - apnic.net - - - - IDC - - ANYCAST
 2.2.2.2 法国 法国 - - orange.com - FR EU - - FRA -
@@ -33,7 +33,7 @@ wxh-rmbp :: ~/› » echo "1.1.1.1 2.2.2.2 123.123.1.1 1.1.1.1 255.255.255.255 8
 
 json格式：
 ```
-wxh-rmbp :: ~/myapp/ipserv ‹master*› » echo "1.1.1.1 test 114.114.114.114" | curl 127.1:8080/json -d@-
+wxh-rmbp » echo "1.1.1.1 test 114.114.114.114" | curl 127.1:8080/json -d@-
 {
     "1.1.1.1": {
         "anycast": "ANYCAST",
