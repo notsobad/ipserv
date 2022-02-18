@@ -4,9 +4,18 @@
 ## Build
 
 ```
-go build
+$ go build
 
-./ipserv -f ./ipv4_cn.ipdb
+$ ./ipserv -h
+Usage of ./ipserv:
+  -f string
+        ip data file (default "./ipv4_cn.ipdb")
+  -ip string
+        IP to use, default 0.0.0.0 (default "0.0.0.0")
+  -port int
+        Port to use, default 9527 (default 9527)
+
+$ ./ipserv -f ./ipv4_cn.ipdb
 ```
 
 ## Usage
@@ -23,8 +32,8 @@ Any text content that has IP in it, you can use HTTP POST method to send the con
 
 You can add some bash alias，in case you want to use it in shell
 ```
-alias ipip-json="curl -s 127.0.0.1:8080/json -d@-"
-alias ipip="curl -H 'Content-Type: text/plain' -s 127.0.0.1:8080/ -d@- "
+alias ipip-json="curl -s 127.0.0.1:9527/json -d@-"
+alias ipip="curl -H 'Content-Type: text/plain' -s 127.0.0.1:9527/ -d@- "
 ```
 
 Then run:
@@ -73,7 +82,7 @@ pc » pbpaste | ipip-json
 
 # Or just use the raw API:
 ```
-pc » echo "1.1.1.1 2.2.2.2 123.123.1.1 1.1.1.1 255.255.255.255 8.8.8.26 114.114.114.234----" | curl 127.1:8080/ -d@- -H 'Content-Type: text/plain'
+pc » echo "1.1.1.1 2.2.2.2 123.123.1.1 1.1.1.1 255.255.255.255 8.8.8.26 114.114.114.234----" | curl 127.1:9527/ -d@- -H 'Content-Type: text/plain'
 #ip country_name region_name city_name owner_domain isp_domain china_admin_code country_code continent_code idc base_station country_code3 anycast
 1.1.1.1 CLOUDFLARE.COM CLOUDFLARE.COM - apnic.net - - - - IDC - - ANYCAST
 2.2.2.2 法国 法国 - - orange.com - FR EU - - FRA -
@@ -85,7 +94,7 @@ pc » echo "1.1.1.1 2.2.2.2 123.123.1.1 1.1.1.1 255.255.255.255 8.8.8.26 114.114
 
 json response：
 ```
-pc » echo "1.1.1.1 test 114.114.114.114" | curl 127.1:8080/json -d@-
+pc » echo "1.1.1.1 test 114.114.114.114" | curl 127.1:9527/json -d@-
 {
     "1.1.1.1": {
         "anycast": "ANYCAST",
