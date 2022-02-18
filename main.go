@@ -1,13 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -40,16 +43,29 @@ var KEYS = []string{
 }
 var db *ipdb.City
 
-func findIPs(text string) map[string]bool {
+func findIPs(text string) []net.IP {
 	re := regexp.MustCompile(`(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])`)
 	re.Longest()
 	ips := re.FindAllString(text, -1)
-	//fmt.Printf("%q\n", ips)
+	ips_uniq := []string{}
+
 	ret := make(map[string]bool)
 	for _, ip := range ips {
-		ret[ip] = true
+		if _, exist := ret[ip]; !exist {
+			ips_uniq = append(ips_uniq, ip)
+			ret[ip] = true
+		}
 	}
-	return ret
+
+	ips_real := []net.IP{}
+	for _, ip := range ips_uniq {
+		ips_real = append(ips_real, net.ParseIP(ip))
+	}
+
+	sort.Slice(ips_real, func(i, j int) bool {
+		return bytes.Compare(ips_real[i], ips_real[j]) < 0
+	})
+	return ips_real
 }
 
 func ipRet(ip string, loc map[string]string) []string {
@@ -80,11 +96,12 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	ips := findIPs(string(body))
 	fmt.Fprintf(w, strings.Join(KEYS, " ")+"\n")
-	for ip := range ips {
-		if loc, err := db.FindMap(ip, "CN"); err != nil {
+	for _, ip := range ips {
+		ip_str := ip.String()
+		if loc, err := db.FindMap(ip_str, "CN"); err != nil {
 			continue
 		} else {
-			vals := ipRet(ip, loc)
+			vals := ipRet(ip_str, loc)
 			fmt.Fprintf(w, strings.Join(vals, " ")+"\n")
 		}
 	}
@@ -102,8 +119,9 @@ func jsonHandler(w http.ResponseWriter, r *http.Request) {
 	ips := findIPs(string(body))
 	resp := make(map[string]interface{})
 
-	for ip := range ips {
-		if loc, err := db.FindMap(ip, "CN"); err != nil {
+	for _, ip := range ips {
+		ip_str := ip.String()
+		if loc, err := db.FindMap(ip_str, "CN"); err != nil {
 			continue
 		} else {
 			ipInfo := make(map[string]interface{})
@@ -117,7 +135,7 @@ func jsonHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				ipInfo[key] = val
 			}
-			resp[ip] = ipInfo
+			resp[ip_str] = ipInfo
 		}
 	}
 	respJSON, _ := json.MarshalIndent(resp, "", "    ")
@@ -128,7 +146,10 @@ func jsonHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	f := flag.String("f", "./ipv4_cn.ipdb", "ip data file")
+	ip := flag.String("ip", "0.0.0.0", "IP to use, default 0.0.0.0")
+	port := flag.Int("port", 9527, "Port to use, default 9527")
 	flag.Parse()
+
 	var err error
 	db, err = ipdb.NewCity(*f)
 	if err != nil {
@@ -137,5 +158,6 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", indexHandler)
 	r.HandleFunc("/json", jsonHandler)
-	log.Fatal(http.ListenAndServe("0.0.0.0:8080", r))
+	address := fmt.Sprintf("%s:%d", *ip, *port)
+	log.Fatal(http.ListenAndServe(address, r))
 }
